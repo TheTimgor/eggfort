@@ -1,0 +1,19 @@
+name: eggfort
+main: moe.timgor.eggfort.Eggfort
+version: 0.1
+author: timgor
+api-version: 1.17
+
+commands:
+  eggtest:
+    description: test
+    usage: /eggtest
+  defensestart:
+    description: Start the defense portion of the game
+    usage: /defensestart
+  defensestop:
+    description: Stop the defense portion of the game (debug)
+    usage: /defensestop
+  gameinit:
+    description: Initialize the game
+    usage: /gameinit
