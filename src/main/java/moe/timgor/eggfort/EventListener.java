@@ -1,10 +1,9 @@
 package moe.timgor.eggfort;
 
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Sound;
+import org.bukkit.*;
 import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Waterlogged;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -13,6 +12,8 @@ import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.player.*;
 
 public class EventListener implements Listener {
+
+    Tag<Material> resource = Tag.LOGS;
 
     @EventHandler
     public void OnBlockBreak(BlockBreakEvent event){
@@ -25,6 +26,14 @@ public class EventListener implements Listener {
         if(event.getBlock().getType() == Material.DRAGON_EGG){
             Eggfort.LOGGING.info("[eggfort] Cancelled egg break");
             event.setCancelled(true);
+        }
+        if(Eggfort.defenseMode && !isOnTeamTurf(event)){
+            Egg egg = Eggfort.getEgg(Eggfort.getPlayerTeam(event.getPlayer()));
+            // if the block broken is of the correct type
+            if(egg.resource.isTagged(event.getBlock().getType())){
+                Eggfort.LOGGING.info("[eggfort] Player collected correct resource " + egg.incrementCollected(event.getPlayer()));
+
+            }
         }
     }
 
@@ -49,8 +58,13 @@ public class EventListener implements Listener {
             event.setCancelled(true);
             // allow players to remove water/lava but not fill the bucket
             // slightly discourages lava spam or water blastproofing
+            BlockData data = event.getBlock().getBlockData();
             if(event.getBlock().getType() == Material.LAVA || event.getBlock().getType() == Material.WATER){
                 event.getBlock().setType(Material.AIR);
+            } else if (data instanceof Waterlogged && ((Waterlogged) data).isWaterlogged()) {
+                Eggfort.LOGGING.info("[eggfort] emptied waterlogged block");
+                ((Waterlogged) data).setWaterlogged(false);
+                event.getBlock().setBlockData(data);
             }
         }
     }
@@ -132,12 +146,24 @@ public class EventListener implements Listener {
                 && event.getAction() == Action.RIGHT_CLICK_BLOCK
         ){
             if(Eggfort.defenseMode){
-                event.getPlayer().sendMessage("The egg grumbles at you");
-                event.getPlayer().playSound(event.getClickedBlock().getLocation(), Sound.ENTITY_SILVERFISH_HURT, 1, 1);
+                Egg egg = Eggfort.getEgg(Integer.signum(event.getClickedBlock().getX()));
 
-                // this side's egg
-                Egg egg = Eggfort.eggs[(Integer.signum(event.getClickedBlock().getX())+1)/2];
-                event.getPlayer().sendMessage("Timer: " + egg.timeSinceFed());
+                if(Eggfort.getPlayerTeam(event.getPlayer()) == egg.team) {
+                    if(egg.checkPlayer(event.getPlayer())){
+                        egg.removeItems(event.getPlayer());
+                        egg.resetEgg();
+                        event.getPlayer().sendMessage("The egg is fed!");
+                    } else {
+                        event.getPlayer().sendMessage("The egg grumbles at you");
+                        event.getPlayer().playSound(event.getClickedBlock().getLocation(), Sound.ENTITY_SILVERFISH_HURT, 1, 1);
+                        int collected = egg.collected.getOrDefault(event.getPlayer().getName(), 0);
+                        event.getPlayer().sendMessage("Collected: " + collected);
+                        event.getPlayer().sendMessage("Timer: " + egg.timeSinceFed());
+                    }
+                } else {
+                    Bukkit.broadcastMessage("Egg captured!! " + egg.team);
+                }
+
             } else{
                 event.getPlayer().sendMessage("The egg chitters at you");
                 event.getPlayer().playSound(event.getClickedBlock().getLocation(), Sound.ENTITY_SILVERFISH_AMBIENT, 1, 2);
@@ -173,6 +199,7 @@ public class EventListener implements Listener {
         return isOnTeamTurf(event.getBlock().getLocation());
     }
 
+    // check if defense mode is enabled and location is on team territory
     public boolean isOnTeamTurf(Location loc) {
         return Eggfort.defenseMode && Math.abs(loc.getX()) > (double)Eggfort.borderRadius / 6;
     }

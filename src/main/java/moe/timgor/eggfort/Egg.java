@@ -1,16 +1,19 @@
 package moe.timgor.eggfort;
 
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.block.Block;
-import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+
+import java.util.HashMap;
 
 public class Egg {
-    private long lastFed;
-    private Block block;
-    private int team;
+    long lastFed;
+    Block block;
+    int team;
+    Tag<Material> resource;
+    int resourceAmount;
+    HashMap<String, Integer> collected;
 
     public Egg(int team) {
         this.team = team;
@@ -19,11 +22,60 @@ public class Egg {
             block = Bukkit.getWorld("world").getBlockAt(block.getLocation().add(0,-1,0));
         }
         this.block = block;
-        resetTimer();
+        resetEgg();
+
     }
 
-    public void resetTimer(){
+    public boolean checkPlayer(Player player){
+        if(collected.getOrDefault(player.getName(), 0) < resourceAmount ){
+            return false;
+        }
+
+        int count = 0;
+        boolean hasEnough = false;
+
+        for(ItemStack stack: player.getInventory()){
+            if(stack != null && resource.isTagged(stack.getType())){
+                int stackSize = stack.getAmount();
+                if(resourceAmount - count > stackSize){
+                    count += stackSize;
+                } else {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    public void removeItems(Player player){
+        int count = 0;
+        boolean hasEnough = false;
+
+        for(ItemStack stack: player.getInventory()){
+            if(stack != null && resource.isTagged(stack.getType())){
+                int stackSize = stack.getAmount();
+                if(resourceAmount - count > stackSize){
+                    count += stackSize;
+                    stack.setAmount(0);
+                } else {
+                    stack.setAmount(stackSize - resourceAmount + count);
+                    break;
+                }
+            }
+        }
+
+    }
+
+    public int incrementCollected(Player player){
+        return collected.put(player.getName(), collected.getOrDefault(player.getName(), 0)+1);
+    }
+
+    public void resetEgg(){
         lastFed = System.currentTimeMillis();
+        resource = Tag.LOGS;
+        resourceAmount = 16;
+        collected = new HashMap<String, Integer>();
     }
 
     // seconds

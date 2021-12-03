@@ -1,0 +1,55 @@
+x implemented
+/ decided against
+(changed implementation)
+
+world setup:
+    x /gameinit
+    x place worldborder
+        x 1200 blocks dia
+            (configurable!)
+    x place eggs
+        x 400 blocks from center, at surface level
+            (dia/3)
+        x on bedrock platform
+    split players into teams
+    / set team spawnpoints
+        / some set distance from egg?
+
+x all play:
+    x prohibit setting spawn w/ bed
+        (spawn can be set normally, but respawn during defense mode is in neutral territory)
+    x remove default actions for egg
+        x does not tp
+        x unpushable
+        x unbreakable
+        / maybe indestructible entity that just looks like egg?
+
+egg defense portion:
+    x /defensestart
+    maybe trigger at fixed time to prevent admin cheese?
+    x team territory
+        x 3 equal strips |  team 1 | neutral | team 2  |
+    x on block place:
+        x if on team territory:
+            x place tnt places lit tnt entity
+            x place fire places fire
+            x water buckets
+            x lava buckets
+            x block all other events
+    x on block break:
+        x if on team territory:
+            x water buckets
+            x lava buckets
+                (buckets can remove liquid blocks but do not store in bucket)
+    egg behavior
+        x 10 ? minute timer
+        select random resource w/ amount
+        keep counter for each player on how many collected
+        on player r-click:
+            if same team:
+                check if they have counter = amount
+                then, check if they have amount in inv
+                remove amount from inv, reset timer + resource
+            if different team:
+                egg is captured, team wins
+        if timer reaches 10 min, stop game
